@@ -54,10 +54,16 @@ describe('createUser', () => {
     expect(getUsers().value).toEqual([user]);
   });
   it('uses the latest collection for duplicates and preserves intervening accounts', () => {
-    const other = { ...user, id: newId, username: 'Writer' };
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(TIME));
+    const other = { ...user, id: '11111111-2222-4333-8444-555555555555', username: 'Writer' };
     saveUsers([user, other]);
     expect(createUser(values).error).toBe('validation');
-    expect(createUser({ ...values, username: 'Next' }).users.slice(0, 2)).toEqual([user, other]);
+    const result = createUser({ ...values, username: 'Next' });
+    expect(result.users.slice(0, 2)).toEqual([user, other]);
+    const created = { ...values, username: 'Next', id: newId, createdAt: TIME };
+    expect(result).toEqual({ ok: true, user: created, users: [user, other, created] });
+    expect(getUsers().value).toEqual([user, other, created]);
   });
   it.each([null, session, { ...admin, role: 'ADMIN' }])('rejects latest missing/nonadmin session', (latest) => {
     if (latest) setSession(latest);

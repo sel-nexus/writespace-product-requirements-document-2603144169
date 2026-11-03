@@ -89,6 +89,39 @@ test('demo login → dashboard → edit another author’s post → cancel and c
   expect(browserErrors).toEqual([]);
 });
 
+for (const action of ['Write New Post', 'Manage Users']) {
+  test(`dashboard quick action ${action} opens its destination`, async ({ page, browserErrors }) => {
+    await page.addInitScript(({ user, post, session }) => {
+      if (sessionStorage.getItem('administration-fixture-seeded')) return;
+      sessionStorage.setItem('administration-fixture-seeded', 'true');
+      localStorage.setItem('writespace_users', JSON.stringify([user]));
+      localStorage.setItem('writespace_posts', JSON.stringify([post]));
+      localStorage.setItem('writespace_session', JSON.stringify({ ...session, role: 'admin' }));
+    }, { user: localUser, post: localPost, session: localSession });
+    await page.goto('/admin');
+    await expect(page.getByRole('heading', { name: 'Admin Dashboard', exact: true })).toBeVisible();
+    await page.getByRole('region', { name: 'Quick actions' })
+      .getByRole('link', { name: action, exact: true }).click();
+    if (action === 'Write New Post') {
+      await expect(page).toHaveURL(/\/write$/);
+      await expect(page.getByRole('heading', { name: 'Write a post', exact: true })).toBeVisible();
+      const form = page.getByRole('form', { name: 'Create post' });
+      await expect(form).toBeVisible();
+      await expect(form.getByLabel('Title', { exact: true })).toHaveValue('');
+      await expect(form.getByLabel('Content', { exact: true })).toHaveValue('');
+      await expect(form.getByRole('button', { name: 'Publish post', exact: true })).toBeEnabled();
+    } else {
+      await expect(page).toHaveURL(/\/users$/);
+      await expect(page.getByRole('heading', { name: 'User Management', exact: true })).toBeVisible();
+      await expect(page.getByRole('region', { name: 'Create account' })
+        .getByRole('button', { name: 'Create account', exact: true })).toBeEnabled();
+      await expect(page.getByRole('table', { name: 'Local accounts' })
+        .getByText(localUser.displayName, { exact: true })).toBeVisible();
+    }
+    expect(browserErrors).toEqual([]);
+  });
+}
+
 test('guest deep entry to /admin redirects to login without exposing overview or changing data', async ({ page, browserErrors }) => {
   await page.addInitScript(({ user, post }) => {
     if (sessionStorage.getItem('administration-fixture-seeded')) return;

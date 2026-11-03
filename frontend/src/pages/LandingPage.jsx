@@ -107,7 +107,7 @@ export default function LandingPage({ session = null, posts }) {
           {recent.length > 0 && (
             <aside
               aria-label="Featured post preview"
-              className="self-center rounded-card shadow-editorial motion-safe:animate-float motion-reduce:animate-none"
+              className="self-center rounded-card shadow-editorial motion-safe:animate-float hover:[animation-play-state:paused] focus-within:[animation-play-state:paused] motion-reduce:animate-none"
             >
               <PostPreview post={recent[0]} />
             </aside>

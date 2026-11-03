@@ -88,6 +88,26 @@ test('newest-three local preview click redirects guest to login without mutation
   expect(browserErrors).toEqual([]);
 });
 
+test('featured local preview click redirects guest to login without mutation', async ({ page, browserErrors }) => {
+  await page.addInitScript((post) => {
+    if (sessionStorage.getItem('featured-fixture-seeded')) return;
+    sessionStorage.setItem('featured-fixture-seeded', 'true');
+    localStorage.setItem('writespace_posts', JSON.stringify([post]));
+  }, localPost);
+  await page.goto('/');
+  const featured = page.getByRole('complementary', { name: 'Featured post preview' });
+  await expect(featured.getByRole('heading', { name: localPost.title, exact: true })).toBeVisible();
+  await featured.getByRole('link', { name: /A Quiet Morning/ }).focus();
+  await featured.getByRole('link', { name: /A Quiet Morning/ }).click();
+  await expect(page).toHaveURL(/\/login$/);
+  await expect(page.getByLabel('Username', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('Password', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Login', exact: true })).toBeVisible();
+  expect(await page.evaluate(() => localStorage.getItem('writespace_posts'))).toBe(JSON.stringify([localPost]));
+  expect(await page.evaluate(() => localStorage.getItem('writespace_session'))).toBeNull();
+  expect(browserErrors).toEqual([]);
+});
+
 for (const role of ['user', 'admin', 'Admin']) {
   test(`authenticated ${role} activates both dashboard links`, async ({ page, browserErrors }, info) => {
     const identity = { ...localSession, role };

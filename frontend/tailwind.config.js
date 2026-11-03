@@ -32,7 +32,7 @@ function role(name) {
 const scales = { primary: colors.indigo, secondary: colors.violet, neutral: colors.slate };
 const lightScales = {};
 const darkScales = {};
-const darkText = {};
+const darkText = { '[data-theme="dark"] .text-surface': { color: '#ffffff' } };
 for (const [name, scale] of Object.entries(scales)) {
   for (const [shade, value] of Object.entries(scale)) {
     lightScales[`${name}-${shade}`] = value;

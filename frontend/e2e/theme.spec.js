@@ -31,7 +31,10 @@ for (const width of [1280, 390]) {
       await page.goto(role === 'guest' ? '/' : role === 'user' ? '/blogs' : '/admin');
       const root = page.locator('[data-theme]');
       await expect(root).toHaveAttribute('data-theme', 'light');
-      await expect(page.getByRole('main').getByText(localPost.title, { exact: true })).toBeVisible();
+      const postRegion = role === 'guest'
+        ? page.getByRole('region', { name: 'Latest from the Blog' })
+        : page.getByRole('main');
+      await expect(postRegion.getByText(localPost.title, { exact: true })).toBeVisible();
       const before = await records(page);
       const light = await presentation(page);
       const toggle = page.getByRole('button', { name: 'Switch to Dark appearance' });

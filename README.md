@@ -30,7 +30,7 @@ node node_modules/@playwright/test/cli.js install chromium
 E2E_BASE_URL=http://127.0.0.1:4173 npm run test:e2e
 ```
 
-Playwright starts and stops the real production preview automatically, uses one Chromium worker, captures browser errors, and tests real localStorage state. Build before E2E. Scripts invoke Node entries rather than relying on npm bin symlinks. Verified: 797 unit/component tests, 29 browser journeys, production build, independent critic PASS 1.0/zero high failures. Discovery specs save persistent HTML/accessibility/styles/screenshots under `frontend/review-evidence/`.
+Playwright starts and stops the real production preview automatically, uses one Chromium worker, captures browser errors, and tests real localStorage state. Build before E2E. Scripts invoke Node entries rather than relying on npm bin symlinks. Change-run verification: 812 unit/component tests passed; all 38 browser journeys passed under Node 22 after correcting featured-preview focus interaction. All six theme journeys passed. Production build succeeded; independent critic PASS 1.0/zero high failures. Discovery specs save persistent HTML/accessibility/styles/screenshots under `frontend/review-evidence/`.
 
 ## Container delivery
 From repository root:
@@ -41,6 +41,9 @@ docker run --rm -p 8080:80 writespace
 ```
 
 Two-stage Node build/nginx image. Root `/` returns 200; nginx serves index.html for client-side deep routes. No backend proxy, database, volume or application API exists. Container build, nginx syntax and root/deep route responses were verified locally. AWS ECR/ECS/ALB/CloudFront deployment belongs to downstream DevOps and has not been performed here. The root `vercel.json` retains the source-required rewrite-only convention; AWS is the selected delivery target. Optional Vercel setup requires project root frontend and copying/applying the rewrite there; it is not an independently verified target.
+
+## Appearance
+Activate the visible Dark appearance / Light appearance button in navigation to switch presentation. Click, Enter and Space work on desktop and mobile. The mode is transient App state: it adds no preference storage, network call or extra mode. Retention/reset across reload or session changes is not guaranteed or specified. Existing posts, users and session records are unchanged by appearance switching.
 
 ## Routes and behavior
 `/` landing; `/login`, `/register` guest entry; `/blogs`, `/blog/:id`, `/write`, `/edit/:id` authenticated. `/admin`, `/users` require the demo admin role. Users manage only owned posts through the UI; admins manage all. Reader renders plain text, never stored HTML. Deletes require confirmation; bootstrap and active account cannot be deleted.

@@ -19,6 +19,9 @@ graphify-out/cost.json
 frontend/test-results/
 frontend/playwright-report/
 frontend/review-evidence/
+theme-preflight.txt
+theme-screenshots/
+theme-screenshots.zip
 graphify-out/.graphify*
 graphify-out/GRAPH_REPORT.md
 graphify-out/graph.html
