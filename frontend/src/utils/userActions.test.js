@@ -77,6 +77,24 @@ describe('createUser', () => {
     expect(createUser(values)).toEqual({ ok: false, error: 'identity_unavailable' });
     expect(getUsers().value).toEqual([user]);
   });
+  it('reports timestamp generation failure after successful reads and UUID without writing', () => {
+    vi.useFakeTimers();
+    const generationTime = Date.parse(TIME) + 1000;
+    vi.setSystemTime(generationTime);
+    const iso = Date.prototype.toISOString;
+    vi.spyOn(Date.prototype, 'toISOString').mockImplementation(function () {
+      if (this.getTime() === generationTime) throw Error('timestamp unavailable');
+      return iso.call(this);
+    });
+    const usersBytes = localStorage.getItem(STORAGE_KEYS.users);
+    const sessionBytes = localStorage.getItem(STORAGE_KEYS.session);
+    const write = vi.spyOn(Storage.prototype, 'setItem');
+    expect(createUser(values)).toEqual({ ok: false, error: 'identity_unavailable' });
+    expect(crypto.randomUUID).toHaveBeenCalledOnce();
+    expect(write).not.toHaveBeenCalled();
+    expect(localStorage.getItem(STORAGE_KEYS.users)).toBe(usersBytes);
+    expect(localStorage.getItem(STORAGE_KEYS.session)).toBe(sessionBytes);
+  });
 });
 
 describe('deleteUser', () => {
@@ -125,7 +143,7 @@ describe.each([
     for (const raw of ['{bad', '{}', '[{}]', 'null']) {
       localStorage.setItem(STORAGE_KEYS[key], raw);
       const before = localStorage.getItem(STORAGE_KEYS.users);
-      expect(action()).toEqual({ ok: false, error: 'invalid_data' });
+      expect(action()).toEqual({ ok: false, error: 'invalid_data', failureKind: 'read' });
       expect(localStorage.getItem(STORAGE_KEYS[key])).toBe(raw);
       expect(localStorage.getItem(STORAGE_KEYS.users)).toBe(before);
     }
@@ -137,14 +155,18 @@ describe.each([
       if (name === STORAGE_KEYS[key]) throw Error('blocked');
       return read.call(this, name);
     });
-    expect(action()).toEqual({ ok: false, error: 'storage_unavailable' });
+    expect(action()).toEqual({ ok: false, error: 'storage_unavailable', failureKind: 'read' });
     expect(read.call(localStorage, STORAGE_KEYS.users)).toBe(bytes);
   });
   it('reports write failure and retains actual persisted bytes', () => {
     const bytes = localStorage.getItem(STORAGE_KEYS.users);
-    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw Error('quota'); });
-    expect(action()).toEqual({ ok: false, error: 'storage_unavailable' });
+    const write = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw Error('quota'); });
+    expect(action()).toEqual({ ok: false, error: 'storage_unavailable', failureKind: 'write' });
     expect(localStorage.getItem(STORAGE_KEYS.users)).toBe(bytes);
+    write.mockRestore();
+    const retry = action();
+    expect(retry.ok).toBe(true);
+    expect(getUsers().value).toEqual(retry.users);
   });
 });
 

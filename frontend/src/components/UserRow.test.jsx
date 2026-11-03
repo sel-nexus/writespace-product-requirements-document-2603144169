@@ -4,14 +4,14 @@ import userEvent from '@testing-library/user-event';
 import { expect, it, vi } from 'vitest';
 import { UserRow } from './UserRow.jsx';
 import { user, session } from '../test/fixtures.js';
-import { formatPostDate } from '../utils/posts.js';
 
 it('renders a desktop semantic row with identity, role, date and no password', async () => {
   const onDelete = vi.fn();
+  const account = { ...user, createdAt: new Date(2026, 0, 10, 12).toISOString() };
   render(
     <table>
       <tbody>
-        <UserRow user={user} onDelete={onDelete} />
+        <UserRow user={account} onDelete={onDelete} />
       </tbody>
     </table>,
   );
@@ -19,7 +19,7 @@ it('renders a desktop semantic row with identity, role, date and no password', a
   expect(screen.getByText(user.displayName)).toBeInTheDocument();
   expect(screen.getByText(user.username)).toBeInTheDocument();
   expect(screen.getByText(user.role)).toBeInTheDocument();
-  expect(screen.getByText(formatPostDate(user.createdAt))).toHaveAttribute('dateTime', user.createdAt);
+  expect(screen.getByText('Jan 10, 2026', { exact: true })).toHaveAttribute('dateTime', account.createdAt);
   expect(screen.getByRole('img', { name: 'User avatar' })).toBeInTheDocument();
   expect(screen.queryByText(user.password)).not.toBeInTheDocument();
   expect(onDelete).not.toHaveBeenCalled();

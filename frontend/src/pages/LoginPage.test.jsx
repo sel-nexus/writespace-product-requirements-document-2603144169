@@ -1,6 +1,6 @@
 /** Exercise login against real local storage and every failure/state transition. */
 import { it, expect, vi } from 'vitest';
-import { screen } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useLocation } from 'react-router-dom';
 import LoginPage from './LoginPage.jsx';
@@ -165,16 +165,24 @@ it('preserves prior session and entered values on write failure and succeeds onl
   expect(onSession).toHaveBeenCalledWith(session);
 });
 it('activates root login, registration login link and role home through actual App', async () => {
-  renderRoute(<App />, '/');
+  renderRoute(
+    <>
+      <App />
+      <Location />
+    </>,
+    '/',
+  );
   const actor = userEvent.setup();
-  await actor.click(screen.getByRole('link', { name: 'Login' }));
+  await actor.click(within(screen.getByRole('navigation', { name: 'Footer navigation' })).getByRole('link', { name: 'Login', exact: true }));
   expect(screen.getByLabelText('Password')).toBeInTheDocument();
   await actor.click(screen.getByRole('link', { name: 'Create account' }));
   expect(screen.getByLabelText('Display name')).toBeInTheDocument();
   await actor.click(screen.getByRole('link', { name: 'Already have an account? Login' }));
   await login(actor, 'admin', 'admin');
-  expect(screen.getByRole('status')).toHaveTextContent('Signed in locally as Admin.');
-  expect(screen.getByRole('link', { name: 'Go to Dashboard' })).toHaveAttribute('href', '/admin');
+  expect(screen.getByRole('button', { name: 'Account for Admin', exact: true })).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: 'Admin Dashboard', exact: true })).toBeInTheDocument();
+  expect(screen.getByLabelText('Current route').textContent).toBe('/admin');
+  expect(getSession()).toEqual({ ok: true, value: { userId: 'admin', username: 'admin', displayName: 'Admin', role: 'admin' } });
 });
 it('back link leaves login without creating a session', async () => {
   renderRoute(<App />, '/login');

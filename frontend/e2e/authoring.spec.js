@@ -3,7 +3,7 @@ import { test, expect } from './fixtures.js';
 
 test('register → create → reader → edit → reload → cancel/confirm delete', async ({ page, browserErrors }) => {
   await page.goto('/');
-  await page.getByRole('link', { name: 'Create account', exact: true }).click();
+  await page.getByRole('link', { name: 'Get Started Free', exact: true }).click();
   await page.getByLabel('Display name', { exact: true }).fill('Synthetic Author');
   await page.getByLabel('Username', { exact: true }).fill('author.demo');
   await page.getByLabel('Password', { exact: true }).fill('demo-only');

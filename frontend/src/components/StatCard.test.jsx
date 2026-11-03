@@ -14,14 +14,19 @@ describe('StatCard', () => {
     expect(container.querySelector('a, button')).toBeNull();
   });
 
-  it.each(['indigo', 'violet', 'pink', 'teal'])('supports the supplied %s accent', (accent) => {
+  it.each([
+    ['indigo', 'border-t-primary-600'],
+    ['violet', 'border-t-secondary-600'],
+    ['pink', 'border-t-accent-pink'],
+    ['teal', 'border-t-accent-teal'],
+  ])('supports the supplied %s accent', (accent, expectedClass) => {
     const { container } = render(
       <StatCard label="Total users" value="?" accent={accent} note="Fourth measure unresolved." />
     );
     expect(screen.getByText('Total users', { exact: true })).toBeVisible();
     expect(container.querySelector('dd')).toHaveTextContent('?');
     expect(screen.getByText('Fourth measure unresolved.')).toBeVisible();
-    expect(container.firstChild.className).toContain('border-t-');
+    expect(container.firstChild).toHaveClass(expectedClass);
     expect(container.querySelector('[title]')).toBeNull();
   });
 });

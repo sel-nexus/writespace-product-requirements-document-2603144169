@@ -11,6 +11,8 @@ const posts = Array.from({ length: 6 }, (_, index) => ({
 
 test('demo login → dashboard → edit another author’s post → cancel and confirm dashboard deletion', async ({ page, browserErrors }) => {
   await page.addInitScript(({ users, posts }) => {
+    if (sessionStorage.getItem('administration-fixture-seeded')) return;
+    sessionStorage.setItem('administration-fixture-seeded', 'true');
     localStorage.setItem('writespace_users', JSON.stringify(users));
     localStorage.setItem('writespace_posts', JSON.stringify(posts));
   }, { users: [localUser], posts });
@@ -50,6 +52,9 @@ test('demo login → dashboard → edit another author’s post → cancel and c
     content: 'Edited by the demo admin; original authorship remains.', updatedAt: expect.any(String),
   });
   expect(new Date(edited[5].updatedAt).toISOString()).toBe(edited[5].updatedAt);
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Admin edited publication' })).toBeVisible();
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('writespace_posts')))).toEqual(edited);
   await page.getByRole('link', { name: 'WriteSpace', exact: true }).click();
   await page.getByRole('navigation', { name: 'Public navigation' }).getByRole('link', { name: 'Go to Dashboard' }).click();
   await expect(page).toHaveURL(/\/admin$/);
@@ -73,11 +78,21 @@ test('demo login → dashboard → edit another author’s post → cancel and c
     posts: JSON.parse(localStorage.getItem('writespace_posts')),
     session: JSON.parse(localStorage.getItem('writespace_session')),
   }))).toEqual({ ...before, posts: posts.slice(0, 5) });
+  await page.reload();
+  await expect(page).toHaveURL(/\/admin$/);
+  await expect(page.getByRole('heading', { name: 'Admin edited publication' })).toHaveCount(0);
+  expect(await page.evaluate(() => ({
+    users: localStorage.getItem('writespace_users'),
+    posts: JSON.parse(localStorage.getItem('writespace_posts')),
+    session: JSON.parse(localStorage.getItem('writespace_session')),
+  }))).toEqual({ ...before, posts: posts.slice(0, 5) });
   expect(browserErrors).toEqual([]);
 });
 
 test('guest deep entry to /admin redirects to login without exposing overview or changing data', async ({ page, browserErrors }) => {
   await page.addInitScript(({ user, post }) => {
+    if (sessionStorage.getItem('administration-fixture-seeded')) return;
+    sessionStorage.setItem('administration-fixture-seeded', 'true');
     localStorage.setItem('writespace_users', JSON.stringify([user]));
     localStorage.setItem('writespace_posts', JSON.stringify([post]));
   }, { user: localUser, post: localPost });
@@ -91,6 +106,8 @@ test('guest deep entry to /admin redirects to login without exposing overview or
 
 test('ordinary account deep entry to /admin redirects to blogs without overview controls', async ({ page, browserErrors }) => {
   await page.addInitScript(({ user, post, session }) => {
+    if (sessionStorage.getItem('administration-fixture-seeded')) return;
+    sessionStorage.setItem('administration-fixture-seeded', 'true');
     localStorage.setItem('writespace_users', JSON.stringify([user]));
     localStorage.setItem('writespace_posts', JSON.stringify([post]));
     localStorage.setItem('writespace_session', JSON.stringify(session));

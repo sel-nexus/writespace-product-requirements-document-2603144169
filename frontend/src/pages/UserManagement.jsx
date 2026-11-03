@@ -33,12 +33,13 @@ export default function UserManagement({ session }) {
   const [errors, setErrors] = useState({});
   const [failure, setFailure] = useState('');
   const [status, setStatus] = useState('');
+  const [readOnly, setReadOnly] = useState(false);
   useEffect(() => {
     setUsersRead(getUsers());
     setSessionRead(getSession());
   }, []);
   const current = sessionRead?.ok ? sessionRead.value : session;
-  const enabled = Boolean(usersRead?.ok && sessionRead?.ok && isAdmin(sessionRead.value));
+  const enabled = Boolean(!readOnly && usersRead?.ok && sessionRead?.ok && isAdmin(sessionRead.value));
   const users = usersRead?.ok ? usersRead.value : [];
   const accounts = users.some((user) => user.id === 'admin') ? users : [
     { id: 'admin', username: 'admin', displayName: 'Admin', role: 'admin' }, ...users,
@@ -50,14 +51,16 @@ export default function UserManagement({ session }) {
     setForm((previous) => ({ ...previous, [name]: value }));
   }
 
-  /** Persist only on valid submission and focus the first rejected field. */
+  /** Persist valid submissions; latch read failures while leaving write retries enabled. */
   function submit(event) {
     event.preventDefault();
+    if (!enabled) return;
     setFailure('');
     setStatus('');
     const result = createUser(form);
     setErrors(result.errors || {});
     if (!result.ok) {
+      if (result.failureKind === 'read') setReadOnly(true);
       if (result.errors) {
         event.currentTarget.elements.namedItem(Object.keys(result.errors)[0])?.focus();
       } else setFailure(failures[result.error]);
@@ -68,13 +71,15 @@ export default function UserManagement({ session }) {
     setStatus('Account created locally.');
   }
 
-  /** Request native confirmation, then repeat all latest-read protections. */
+  /** Confirm enabled deletion and latch failed reads without discarding displayed accounts. */
   function remove(id) {
+    if (!enabled) return;
     if (!window.confirm('Delete this local account?')) return;
     setFailure('');
     setStatus('');
     const result = deleteUser(id, true);
     if (!result.ok) {
+      if (result.failureKind === 'read') setReadOnly(true);
       setFailure(failures[result.error]);
       return;
     }

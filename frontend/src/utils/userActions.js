@@ -13,13 +13,13 @@ export function isBootstrapUser(user) {
 
 /** Read both mutation prerequisites and require a current administrator.
  * Returns:
- *   Fresh session/accounts or an explicit failure; never writes.
+ *   Fresh session/accounts or a failure tagged as a read operation; never writes.
  */
 function readAccounts() {
   const sessionRead = getSession();
   const usersRead = getUsers();
-  if (!sessionRead.ok) return { ok: false, error: sessionRead.error };
-  if (!usersRead.ok) return { ok: false, error: usersRead.error };
+  if (!sessionRead.ok) return { ok: false, error: sessionRead.error, failureKind: 'read' };
+  if (!usersRead.ok) return { ok: false, error: usersRead.error, failureKind: 'read' };
   if (!isAdmin(sessionRead.value)) return { ok: false, error: 'admin_required' };
   return { ok: true, session: sessionRead.value, users: usersRead.value };
 }
@@ -28,7 +28,7 @@ function readAccounts() {
  * @param {object} input Display name, username, demo password and role.
  * @returns {object} Persisted account/collection or validation/operation failure.
  * Notes:
- *   No session is changed; failed reads and writes never become success.
+ *   No session is changed; failed reads and writes carry distinct failure kinds.
  */
 export function createUser(input) {
   const latest = readAccounts();
@@ -51,7 +51,7 @@ export function createUser(input) {
   }
   const users = [...latest.users, user];
   const saved = saveUsers(users);
-  return saved.ok ? { ok: true, user, users } : saved;
+  return saved.ok ? { ok: true, user, users } : { ...saved, failureKind: 'write' };
 }
 
 /** Delete an eligible account only after explicit confirmation.
@@ -60,6 +60,7 @@ export function createUser(input) {
  * @returns {object} Persisted next collection or an honest failure/cancellation.
  * Notes:
  *   Reads and protections are repeated after confirmation, not from page cache.
+ *   Failed reads and writes carry distinct failure kinds for safe UI recovery.
  */
 export function deleteUser(id, confirmed = false) {
   if (confirmed !== true) return { ok: false, error: 'canceled' };
@@ -71,5 +72,5 @@ export function deleteUser(id, confirmed = false) {
   if (!user) return { ok: false, error: 'not_found' };
   const users = latest.users.filter((row) => row.id !== id);
   const saved = saveUsers(users);
-  return saved.ok ? { ok: true, users } : saved;
+  return saved.ok ? { ok: true, users } : { ...saved, failureKind: 'write' };
 }

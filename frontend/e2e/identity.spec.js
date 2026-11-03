@@ -5,7 +5,7 @@ for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 
   test(`register, persist and reload at ${viewport.width}px`, async ({ page, browserErrors }) => {
     await page.setViewportSize(viewport);
     await page.goto('/');
-    await page.getByRole('link', { name: 'Create account', exact: true }).click();
+    await page.getByRole('link', { name: 'Get Started Free', exact: true }).click();
     await expect(page).toHaveURL(/\/register$/);
     await page.getByRole('button', { name: 'Create account', exact: true }).click();
     await expect(page.getByText('Required', { exact: true })).toHaveCount(4);
@@ -15,7 +15,7 @@ for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 
     await page.getByLabel('Confirm password', { exact: true }).fill('demo-only');
     await page.getByRole('button', { name: 'Create account', exact: true }).click();
     await expect(page).toHaveURL(/\/blogs$/);
-    await expect(page.getByRole('status')).toHaveText('Signed in locally as Synthetic Writer.');
+    await expect(page.getByRole('button', { name: 'Account for Synthetic Writer', exact: true })).toBeVisible();
     const persisted = await page.evaluate(() => ({
       users: JSON.parse(localStorage.getItem('writespace_users')),
       session: JSON.parse(localStorage.getItem('writespace_session')),
@@ -31,7 +31,8 @@ for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 
       userId: persisted.users[0].id, displayName: 'Synthetic Writer', username: 'Demo.Writer', role: 'user',
     });
     await page.reload();
-    await expect(page.getByRole('status')).toHaveText('Signed in locally as Synthetic Writer.');
+    await expect(page).toHaveURL(/\/blogs$/);
+    await expect(page.getByRole('button', { name: 'Account for Synthetic Writer', exact: true })).toBeVisible();
     expect(await page.evaluate(() => ({
       users: JSON.parse(localStorage.getItem('writespace_users')),
       session: JSON.parse(localStorage.getItem('writespace_session')),

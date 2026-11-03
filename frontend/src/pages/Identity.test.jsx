@@ -65,20 +65,34 @@ describe('ordinary local registration', () => {
     expect(screen.getByLabelText('Current route')).toHaveTextContent('/blogs');
   });
   it('renders actual root entry, activates register link and hydrates persisted identity after remount', async () => {
-    const view = renderRoute(<App />, '/');
+    const view = renderRoute(
+      <>
+        <App />
+        <Location />
+      </>,
+      '/',
+    );
     const actor = userEvent.setup();
     expect(screen.queryByLabelText('Display name')).not.toBeInTheDocument();
-    await actor.click(screen.getByRole('link', { name: 'Create account' }));
+    await actor.click(screen.getByRole('link', { name: 'Get Started Free', exact: true }));
     await fill(actor);
     await submit(actor);
-    expect(screen.getByRole('status')).toHaveTextContent('Signed in locally as Synthetic Writer.');
+    expect(screen.getByRole('button', { name: 'Account for Synthetic Writer', exact: true })).toBeInTheDocument();
+    expect(screen.getByLabelText('Current route').textContent).toBe('/blogs');
     const persisted = getSession();
     expect(persisted.ok).toBe(true);
     expect(persisted.value.userId).toMatch(/^[0-9a-f-]{36}$/);
     expect(getUsers().value[0].createdAt).toBe(new Date(getUsers().value[0].createdAt).toISOString());
     view.unmount();
-    renderRoute(<App />, '/blogs');
-    expect(screen.getByRole('status')).toHaveTextContent('Signed in locally as Synthetic Writer.');
+    renderRoute(
+      <>
+        <App />
+        <Location />
+      </>,
+      '/blogs',
+    );
+    expect(screen.getByRole('button', { name: 'Account for Synthetic Writer', exact: true })).toBeInTheDocument();
+    expect(screen.getByLabelText('Current route').textContent).toBe('/blogs');
     expect(getSession()).toEqual(persisted);
   });
   it('renders a root failed-session warning without mutating invalid bytes', () => {

@@ -1,5 +1,6 @@
 /** Exercise real discovery links and capture preflight evidence for later execution. */
 import { test, expect, localPost, localSession } from './fixtures.js';
+import { mkdir, writeFile } from 'node:fs/promises';
 
 const notice = 'Local-only demo: data and authentication are client-side. Credentials are stored in plain text. '
   + 'There is no backend, database, or network service. Do not use real or sensitive credentials.';
@@ -30,7 +31,13 @@ async function capturePreflight(page, info, name) {
     };
   });
   await info.attach(`${name}-styles`, { body: JSON.stringify(styles, null, 2), contentType: 'application/json' });
-  await info.attach(`${name}-screenshot`, { body: await page.screenshot({ fullPage: true }), contentType: 'image/png' });
+  await mkdir('review-evidence', { recursive: true });
+  await writeFile(`review-evidence/${name}.html`, await page.content());
+  await writeFile(`review-evidence/${name}-accessibility.json`,
+    JSON.stringify(await page.accessibility.snapshot({ interestingOnly: false }), null, 2));
+  await writeFile(`review-evidence/${name}-styles.json`, JSON.stringify(styles, null, 2));
+  await page.screenshot({ path: `review-evidence/${name}.png`, fullPage: true });
+  await info.attach(`${name}-screenshot`, { path: `review-evidence/${name}.png`, contentType: 'image/png' });
 }
 
 test('guest entry actions navigate only after clicks from the empty landing', async ({ page, browserErrors }, info) => {
@@ -45,7 +52,7 @@ test('guest entry actions navigate only after clicks from the empty landing', as
   await page.getByRole('link', { name: 'Get Started Free', exact: true }).click();
   await expect(page).toHaveURL(/\/register$/);
   await expect(page.getByLabel('Confirm password')).toBeVisible();
-  await page.goBack();
+  await page.getByRole('link', { name: 'Back to WriteSpace', exact: true }).click();
   await expect(page).toHaveURL(/\/$/);
   await page.getByRole('link', { name: 'Start Reading', exact: true }).click();
   await expect(page).toHaveURL(/\/login$/);

@@ -82,15 +82,26 @@ it('clears only session and refreshes actual App to guest on explicit logout', a
   setSession(session);
   saveUsers([user]);
   savePosts([post]);
-  renderRoute(<App />, '/blogs');
+  renderRoute(
+    <>
+      <App />
+      <Location />
+    </>,
+    '/blogs',
+  );
   const actor = userEvent.setup();
-  expect(screen.getByRole('status')).toHaveTextContent('Mina Chen');
+  expect(screen.getByRole('button', { name: 'Account for Mina Chen', exact: true })).toBeInTheDocument();
+  expect(screen.getByLabelText('Current route').textContent).toBe('/blogs');
+  expect(getSession().value).toEqual(session);
   await logout(actor);
   expect(getSession().value).toBeNull();
   expect(localStorage.getItem(STORAGE_KEYS.users)).toBe(JSON.stringify([user]));
   expect(localStorage.getItem(STORAGE_KEYS.posts)).toBe(JSON.stringify([post]));
-  expect(screen.queryByRole('status')).not.toBeInTheDocument();
-  expect(screen.getByRole('link', { name: 'Login' })).toBeInTheDocument();
+  expect(within(screen.getByRole('main')).queryByRole('status')).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Account for Mina Chen', exact: true })).not.toBeInTheDocument();
+  expect(screen.getByLabelText('Current route').textContent).toBe('/');
+  expect(screen.getByRole('heading', { name: 'WriteSpace', exact: true })).toBeInTheDocument();
+  expect(within(screen.getByRole('navigation', { name: 'Footer navigation' })).getByRole('link', { name: 'Login', exact: true })).toBeInTheDocument();
 });
 it('completes logout when latest successful read reports an already missing session', async () => {
   const onSession = mount();

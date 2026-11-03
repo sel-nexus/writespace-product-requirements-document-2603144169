@@ -1,5 +1,5 @@
 /** Verify account form, confirmation and failure integrity through user actions. */
-import { screen, within } from '@testing-library/react';
+import { fireEvent, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, expect, it, vi } from 'vitest';
 import UserManagement from './UserManagement.jsx';
@@ -23,6 +23,17 @@ async function fill(role = 'user', username = 'Writer') {
 /** Activate only the desktop row's control in the CSS-independent unit DOM. */
 function deleteButton() {
   return within(screen.getByRole('table')).getByRole('button', { name: `Delete ${user.username}` });
+}
+
+/** Assert all account mutation controls, including both row layouts, are disabled. */
+function expectReadOnly() {
+  for (const label of ['Display name', 'Username', 'Password', 'Role']) {
+    expect(screen.getByLabelText(label)).toBeDisabled();
+  }
+  expect(screen.getByRole('button', { name: 'Create account' })).toBeDisabled();
+  for (const button of screen.getAllByRole('button', { name: /^Delete / })) {
+    expect(button).toBeDisabled();
+  }
 }
 
 it.each(['user', 'admin', 'Admin'])('creates selected %s account, clears form and re-reads actual persistence', async (role) => {
@@ -125,6 +136,7 @@ it.each(['self', 'bootstrap', 'missing', 'role', 'corrupt-users', 'corrupt-sessi
   expect(screen.getByRole('status')).toBeEmptyDOMElement();
   if (mode === 'corrupt-users') expect(localStorage.getItem(STORAGE_KEYS.users)).toBe('{bad');
   else if (mode !== 'missing') expect(getUsers().value).toHaveLength(1);
+  if (mode.startsWith('corrupt-')) expectReadOnly();
   expect(within(screen.getByRole('table')).getByText(user.username)).toBeInTheDocument();
 });
 
@@ -133,12 +145,22 @@ it.each(['create', 'delete'])('shows write failure for %s without success or cha
   if (action === 'create') await fill();
   vi.spyOn(window, 'confirm').mockReturnValue(true);
   const bytes = localStorage.getItem(STORAGE_KEYS.users);
-  vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw Error('quota'); });
+  const write = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw Error('quota'); });
   await userEvent.click(action === 'create' ? screen.getByRole('button', { name: 'Create account' }) : deleteButton());
   expect(screen.getByRole('alert')).toHaveTextContent('No account changes were saved');
   expect(screen.getByRole('status')).toBeEmptyDOMElement();
   expect(localStorage.getItem(STORAGE_KEYS.users)).toBe(bytes);
   expect(within(screen.getByRole('table')).getByText(user.username)).toBeInTheDocument();
+  for (const label of ['Display name', 'Username', 'Password', 'Role']) {
+    expect(screen.getByLabelText(label)).toBeEnabled();
+  }
+  expect(screen.getByRole('button', { name: 'Create account' })).toBeEnabled();
+  expect(deleteButton()).toBeEnabled();
+  write.mockRestore();
+  await userEvent.click(action === 'create' ? screen.getByRole('button', { name: 'Create account' }) : deleteButton());
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  expect(screen.getByRole('status')).toHaveTextContent(action === 'create' ? 'Account created locally.' : 'Account deleted locally.');
+  expect(getUsers().value).toHaveLength(action === 'create' ? 2 : 0);
 });
 
 it.each(['users', 'session'])('initial corrupt %s storage disables changes and preserves bytes', (key) => {
@@ -184,4 +206,65 @@ it.each(['duplicate', 'role', 'corrupt', 'uuid'])('rejects latest %s creation fa
   expect(screen.getByLabelText('Username')).toHaveValue('Writer');
   expect(screen.getByRole('status')).toBeEmptyDOMElement();
   expect(localStorage.getItem(STORAGE_KEYS.users)).toBe(bytes);
+  if (mode === 'corrupt') expectReadOnly();
+});
+
+it.each([
+  ['create', 'users', 'corrupt'], ['create', 'session', 'corrupt'],
+  ['create', 'users', 'throw'], ['create', 'session', 'throw'],
+  ['delete', 'users', 'corrupt'], ['delete', 'session', 'corrupt'],
+  ['delete', 'users', 'throw'], ['delete', 'session', 'throw'],
+])('latches read-only after late %s %s %s failure without subsequent confirmation or writes', async (action, key, mode) => {
+  const other = { ...user, id: 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee', username: 'Other' };
+  saveUsers([user, other]);
+  renderRoute(<UserManagement session={admin} />, '/users');
+  await fill();
+  const read = Storage.prototype.getItem;
+  const setItem = Storage.prototype.setItem;
+  const original = Object.fromEntries(['users', 'session'].map((name) => [name, read.call(localStorage, STORAGE_KEYS[name])]));
+  let failedBytes;
+  let readFailure;
+  /** Introduce the failure after hydration, or inside native confirmation. */
+  function failRead() {
+    if (mode === 'corrupt') setItem.call(localStorage, STORAGE_KEYS[key], '{bad');
+    else readFailure = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(function (name) {
+      if (name === STORAGE_KEYS[key]) throw Error('blocked');
+      return read.call(this, name);
+    });
+    failedBytes = Object.fromEntries(['users', 'session'].map((name) => [name, read.call(localStorage, STORAGE_KEYS[name])]));
+  }
+  const confirm = vi.spyOn(window, 'confirm').mockImplementation(() => {
+    failRead();
+    return true;
+  });
+  if (action === 'create') failRead();
+  const write = vi.spyOn(Storage.prototype, 'setItem');
+  const remove = vi.spyOn(Storage.prototype, 'removeItem');
+  await userEvent.click(action === 'create' ? screen.getByRole('button', { name: 'Create account' }) : deleteButton());
+  expect(screen.getByRole('alert')).toHaveTextContent(mode === 'corrupt' ? 'could not be read' : 'Local storage could not complete');
+  expect(screen.getByRole('status')).toBeEmptyDOMElement();
+  expect(screen.getByLabelText('Username')).toHaveValue('Writer');
+  expectReadOnly();
+  expect(within(screen.getByRole('table')).getByText('Other')).toBeInTheDocument();
+  const confirmations = confirm.mock.calls.length;
+  expect(confirmations).toBe(action === 'delete' ? 1 : 0);
+  expect(write).not.toHaveBeenCalled();
+  expect(remove).not.toHaveBeenCalled();
+  for (const name of ['users', 'session']) {
+    expect(read.call(localStorage, STORAGE_KEYS[name])).toBe(failedBytes[name]);
+  }
+  // External recovery must not re-enable this mounted page.
+  readFailure?.mockRestore();
+  for (const name of ['users', 'session']) localStorage.setItem(STORAGE_KEYS[name], original[name]);
+  write.mockClear();
+  await userEvent.click(screen.getByRole('button', { name: 'Create account' }));
+  for (const button of screen.getAllByRole('button', { name: /^Delete / })) await userEvent.click(button);
+  fireEvent.submit(screen.getByRole('button', { name: 'Create account' }).closest('form'));
+  expectReadOnly();
+  expect(confirm).toHaveBeenCalledTimes(confirmations);
+  expect(write).not.toHaveBeenCalled();
+  expect(remove).not.toHaveBeenCalled();
+  for (const name of ['users', 'session']) {
+    expect(read.call(localStorage, STORAGE_KEYS[name])).toBe(original[name]);
+  }
 });

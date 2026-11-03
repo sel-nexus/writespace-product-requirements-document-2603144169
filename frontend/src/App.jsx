@@ -22,6 +22,11 @@ export default function App() {
   const { pathname } = useLocation();
   const [sessionRead, setSessionRead] = useState(null);
   useEffect(() => {
+    const titles = { '/': 'WriteSpace', '/login': 'Login', '/register': 'Register', '/blogs': 'All Blogs',
+      '/write': 'Write a post', '/admin': 'Publication overview', '/users': 'Account management' };
+    document.title = `${titles[pathname] || (pathname.startsWith('/edit/') ? 'Edit post' : 'Read post')} | WriteSpace`;
+  }, [pathname]);
+  useEffect(() => {
     setSessionRead(getSession());
   }, []);
 

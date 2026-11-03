@@ -4,7 +4,7 @@ import { loadEnv } from 'vite';
 
 const env = { ...loadEnv('test', process.cwd(), ''), ...process.env };
 const host = env.VITE_HOST || '127.0.0.1';
-const port = env.VITE_PORT || '5173';
+const port = env.E2E_PORT || '4173';
 const baseURL = env.E2E_BASE_URL || `http://${host}:${port}`;
 export default defineConfig({
   testDir: './e2e',
@@ -16,7 +16,7 @@ export default defineConfig({
   use: { baseURL, trace: 'retain-on-failure', screenshot: 'only-on-failure' },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
-    command: 'node node_modules/vite/bin/vite.js',
+    command: `node node_modules/vite/bin/vite.js preview --host ${host} --port ${port} --strictPort`,
     env: { VITE_HOST: host, VITE_PORT: port },
     url: baseURL,
     reuseExistingServer: false,
