@@ -2,7 +2,7 @@
 import { it, expect, vi } from 'vitest';
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { useLocation } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { Navbar } from './Navbar.jsx';
 import App from '../App.jsx';
 import { session, user, post, renderRoute } from '../test/fixtures.js';
@@ -140,4 +140,32 @@ it.each(['invalid_data', 'storage_unavailable'])('gates removal on latest %s rea
   expect(screen.getByLabelText('Current route')).toHaveTextContent('/blogs');
   spy?.mockRestore();
   expect(localStorage.getItem(STORAGE_KEYS.session)).toBe(raw);
+});
+
+
+it('exposes appearance outside the mobile disclosure and activates only on input', async () => {
+  const onToggle = vi.fn();
+  const { rerender } = renderRoute(
+    <Navbar session={session} onSession={vi.fn()} theme="light" onToggle={onToggle} />,
+    '/blogs',
+  );
+  const actor = userEvent.setup();
+  const button = screen.getByRole('button', { name: 'Switch to Dark appearance' });
+  expect(button.closest('nav')).toBeNull();
+  expect(screen.getByRole('button', { name: 'Toggle navigation' })).toHaveAttribute('aria-expanded', 'false');
+  expect(onToggle).not.toHaveBeenCalled();
+  await actor.click(button);
+  expect(onToggle).toHaveBeenCalledTimes(1);
+  rerender(
+    <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <Navbar session={session} onSession={vi.fn()} theme="dark" onToggle={onToggle} />
+    </MemoryRouter>,
+  );
+  expect(onToggle).toHaveBeenCalledTimes(1);
+  const reverse = screen.getByRole('button', { name: 'Switch to Light appearance' });
+  reverse.focus();
+  await actor.keyboard('{Enter}');
+  expect(onToggle).toHaveBeenCalledTimes(2);
+  await actor.keyboard(' ');
+  expect(onToggle).toHaveBeenCalledTimes(3);
 });

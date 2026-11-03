@@ -1,8 +1,8 @@
 /** Verify activated public navigation and role-preserving mobile disclosure. */
-import { it, expect } from 'vitest';
+import { it, expect, vi } from 'vitest';
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { useLocation } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { PublicNavbar } from './PublicNavbar.jsx';
 import { renderRoute, session } from '../test/fixtures.js';
 
@@ -79,4 +79,32 @@ it('supports keyboard toggle, close and branding activation without storage chan
   expect(toggle).toHaveAttribute('aria-expanded', 'false');
   expect(screen.getByLabelText('Current route')).toHaveTextContent(/^\/$/);
   expect(localStorage.getItem('unrelated')).toBe('preserve');
+});
+
+
+it('exposes appearance outside the mobile disclosure and activates only on input', async () => {
+  const onToggle = vi.fn();
+  const { rerender } = renderRoute(
+    <PublicNavbar session={session} theme="light" onToggle={onToggle} />,
+    '/blogs',
+  );
+  const actor = userEvent.setup();
+  const button = screen.getByRole('button', { name: 'Switch to Dark appearance' });
+  expect(button.closest('nav')).toBeNull();
+  expect(screen.getByRole('button', { name: 'Toggle navigation' })).toHaveAttribute('aria-expanded', 'false');
+  expect(onToggle).not.toHaveBeenCalled();
+  await actor.click(button);
+  expect(onToggle).toHaveBeenCalledTimes(1);
+  rerender(
+    <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <PublicNavbar session={session} theme="dark" onToggle={onToggle} />
+    </MemoryRouter>,
+  );
+  expect(onToggle).toHaveBeenCalledTimes(1);
+  const reverse = screen.getByRole('button', { name: 'Switch to Light appearance' });
+  reverse.focus();
+  await actor.keyboard('{Enter}');
+  expect(onToggle).toHaveBeenCalledTimes(2);
+  await actor.keyboard(' ');
+  expect(onToggle).toHaveBeenCalledTimes(3);
 });

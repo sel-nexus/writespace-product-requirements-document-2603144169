@@ -3,6 +3,7 @@ import { useState } from 'react';
 import PropTypes from 'prop-types';
 import { Link } from 'react-router-dom';
 import { Avatar } from './Avatar.jsx';
+import { ThemeToggle } from './ThemeToggle.jsx';
 import { homeFor } from '../utils/auth.js';
 import { buttons, link } from '../utils/ui.js';
 
@@ -12,7 +13,7 @@ import { buttons, link } from '../utils/ui.js';
  * Returns:
  *   A sticky header with keyboard-operable mobile disclosure.
  */
-export function PublicNavbar({ session = null }) {
+export function PublicNavbar({ session = null, theme = 'light', onToggle }) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   /** Close the disclosure after an explicitly activated link. */
@@ -31,6 +32,7 @@ export function PublicNavbar({ session = null }) {
         <Link to="/" onClick={closeNavigation} className={`mr-auto font-display text-2xl font-bold ${link}`}>
           WriteSpace
         </Link>
+        {onToggle && <ThemeToggle theme={theme} onToggle={onToggle} />}
         <button
           type="button"
           aria-label="Toggle navigation"
@@ -83,6 +85,8 @@ export function PublicNavbar({ session = null }) {
   );
 }
 PublicNavbar.propTypes = {
+  theme: PropTypes.oneOf(['light', 'dark']),
+  onToggle: PropTypes.func,
   session: PropTypes.shape({
     userId: PropTypes.string.isRequired,
     username: PropTypes.string.isRequired,

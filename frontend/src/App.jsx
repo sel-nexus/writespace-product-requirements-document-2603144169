@@ -21,6 +21,12 @@ import { buttons } from './utils/ui.js';
 export default function App() {
   const { pathname } = useLocation();
   const [sessionRead, setSessionRead] = useState(null);
+  const [theme, setTheme] = useState('light');
+
+  /** Change presentation only after the appearance button is activated. */
+  function toggleTheme() {
+    setTheme((current) => current === 'light' ? 'dark' : 'light');
+  }
   useEffect(() => {
     const titles = { '/': 'WriteSpace', '/login': 'Login', '/register': 'Register', '/blogs': 'All Blogs',
       '/write': 'Write a post', '/admin': 'Publication overview', '/users': 'Account management' };
@@ -70,11 +76,11 @@ export default function App() {
     </main>
   );
   return (
-    <div className="min-h-screen bg-background font-sans text-foreground">
-      {pathname === '/' ? (
-        <PublicNavbar session={session} />
-      ) : session && (
-        <Navbar session={session} onSession={onSession} />
+    <div data-theme={theme} className="min-h-screen bg-background font-sans text-foreground">
+      {pathname === '/' || !session ? (
+        <PublicNavbar session={session} theme={theme} onToggle={toggleTheme} />
+      ) : (
+        <Navbar session={session} onSession={onSession} theme={theme} onToggle={toggleTheme} />
       )}
       <StorageWarning result={sessionRead} />
       {sessionRead && (

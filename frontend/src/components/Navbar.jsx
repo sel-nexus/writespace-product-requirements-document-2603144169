@@ -3,13 +3,14 @@ import { startTransition, useState } from 'react';
 import PropTypes from 'prop-types';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { Avatar } from './Avatar.jsx';
+import { ThemeToggle } from './ThemeToggle.jsx';
 import { StorageWarning } from './StorageWarning.jsx';
 import { isAdmin } from '../utils/auth.js';
 import { clearSession, getSession } from '../utils/storage.js';
 import { buttons, focus, link } from '../utils/ui.js';
 
 /** Render source links, responsive disclosures, and report logout failures honestly. */
-export function Navbar({ session, onSession }) {
+export function Navbar({ session, onSession, theme = 'light', onToggle }) {
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
@@ -53,6 +54,7 @@ export function Navbar({ session, onSession }) {
         <Link to="/" onClick={closeNavigation} className={`mr-auto font-display text-2xl font-bold ${link}`}>
           WriteSpace
         </Link>
+        {onToggle && <ThemeToggle theme={theme} onToggle={onToggle} />}
         <button
           type="button"
           aria-label="Toggle navigation"
@@ -111,4 +113,6 @@ export function Navbar({ session, onSession }) {
 Navbar.propTypes = {
   session: PropTypes.shape({ displayName: PropTypes.string.isRequired, role: PropTypes.string.isRequired }).isRequired,
   onSession: PropTypes.func.isRequired,
+  theme: PropTypes.oneOf(['light', 'dark']),
+  onToggle: PropTypes.func,
 };
