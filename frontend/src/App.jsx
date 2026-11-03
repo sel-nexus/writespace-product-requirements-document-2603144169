@@ -1,6 +1,8 @@
 /** Compose only implemented routes and keep a browser-local session view. */
 import { useEffect, useState } from 'react';
-import { Link, Route, Routes } from 'react-router-dom';
+import { Link, Route, Routes, useLocation } from 'react-router-dom';
+import LandingPage from './pages/LandingPage.jsx';
+import { PublicNavbar } from './components/PublicNavbar.jsx';
 import RegisterPage from './pages/RegisterPage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import { ProtectedRoute } from './components/ProtectedRoute.jsx';
@@ -10,8 +12,9 @@ import { StorageWarning } from './components/StorageWarning.jsx';
 import { getSession } from './utils/storage.js';
 import { buttons } from './utils/ui.js';
 
-/** Wire implemented identity pages and guards; retain entry content for future slices. */
+/** Wire identity and discovery pages; retain protected entry content for future slices. */
 export default function App() {
+  const { pathname } = useLocation();
   const [sessionRead, setSessionRead] = useState(null);
   useEffect(() => {
     setSessionRead(getSession());
@@ -58,13 +61,15 @@ export default function App() {
   );
   return (
     <div className="min-h-screen bg-background font-sans text-foreground">
-      {session && (
+      {pathname === '/' ? (
+        <PublicNavbar session={session} />
+      ) : session && (
         <Navbar session={session} onSession={onSession} />
       )}
       <StorageWarning result={sessionRead} />
       {sessionRead && (
         <Routes>
-          <Route path="/" element={entry} />
+          <Route path="/" element={<LandingPage session={session} />} />
           <Route
             path="/register"
             element={
