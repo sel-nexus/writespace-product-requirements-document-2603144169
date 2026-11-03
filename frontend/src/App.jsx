@@ -9,6 +9,7 @@ import Home from './pages/Home.jsx';
 import ReadBlog from './pages/ReadBlog.jsx';
 import WriteBlog from './pages/WriteBlog.jsx';
 import AdminDashboard from './pages/AdminDashboard.jsx';
+import UserManagement from './pages/UserManagement.jsx';
 import { ProtectedRoute } from './components/ProtectedRoute.jsx';
 import { Navbar } from './components/Navbar.jsx';
 import { homeFor } from './utils/auth.js';
@@ -16,7 +17,7 @@ import { StorageWarning } from './components/StorageWarning.jsx';
 import { getSession } from './utils/storage.js';
 import { buttons } from './utils/ui.js';
 
-/** Wire identity, discovery, posts and overview; retain entry content for future account management. */
+/** Wire identity, discovery, posts, overview and account management. */
 export default function App() {
   const { pathname } = useLocation();
   const [sessionRead, setSessionRead] = useState(null);
@@ -134,7 +135,7 @@ export default function App() {
             path="/users"
             element={
               <ProtectedRoute session={session} adminOnly>
-                {entry}
+                <UserManagement session={session} />
               </ProtectedRoute>
             }
           />
