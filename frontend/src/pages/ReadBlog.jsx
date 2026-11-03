@@ -5,7 +5,8 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Avatar } from '../components/Avatar.jsx';
 import { postType, sessionType } from '../components/BlogCard.jsx';
 import { StorageWarning } from '../components/StorageWarning.jsx';
-import { getPosts, getSession, savePosts } from '../utils/storage.js';
+import { getPosts } from '../utils/storage.js';
+import { deletePost as removePost } from '../utils/postActions.js';
 import { canManagePost } from '../utils/auth.js';
 import { formatPostDate } from '../utils/posts.js';
 import { buttons, link } from '../utils/ui.js';
@@ -40,23 +41,20 @@ export default function ReadBlog({ session = null, posts }) {
    */
   function deletePost() {
     if (!manageable || !window.confirm('Delete this post?')) return;
-    const currentSession = getSession();
-    const currentPosts = getPosts();
-    if (!currentSession.ok || !currentPosts.ok) {
+    const result = removePost(id);
+    if (result.error === 'read_failed') {
       setBlocked(true);
       setError('Post could not be deleted because local data could not be read. Existing data is unchanged.');
       return;
     }
-    const currentPost = currentPosts.value.find((row) => row.id === id);
-    if (!currentPost) {
+    if (result.error === 'not_found') {
       setError('Post not found');
       return;
     }
-    if (!canManagePost(currentSession.value, currentPost)) {
+    if (result.error === 'permission_denied') {
       setError('You no longer have permission to delete this post.');
       return;
     }
-    const result = savePosts(currentPosts.value.filter((row) => row.id !== id));
     if (!result.ok) {
       setError('Post could not be deleted. Local storage is unavailable. Please try again.');
       return;

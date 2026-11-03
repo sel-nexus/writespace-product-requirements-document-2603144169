@@ -7,6 +7,7 @@ import RegisterPage from './pages/RegisterPage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import Home from './pages/Home.jsx';
 import ReadBlog from './pages/ReadBlog.jsx';
+import WriteBlog from './pages/WriteBlog.jsx';
 import { ProtectedRoute } from './components/ProtectedRoute.jsx';
 import { Navbar } from './components/Navbar.jsx';
 import { homeFor } from './utils/auth.js';
@@ -14,7 +15,7 @@ import { StorageWarning } from './components/StorageWarning.jsx';
 import { getSession } from './utils/storage.js';
 import { buttons } from './utils/ui.js';
 
-/** Wire identity, discovery and reading pages; retain protected entry content for future slices. */
+/** Wire identity, discovery, reading and authoring; retain entry content for future administration. */
 export default function App() {
   const { pathname } = useLocation();
   const [sessionRead, setSessionRead] = useState(null);
@@ -104,7 +105,23 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-          {['/write', '/edit/:id', '/admin', '/users'].map((path) => (
+          <Route
+            path="/write"
+            element={
+              <ProtectedRoute session={session}>
+                <WriteBlog session={session} mode="create" />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/edit/:id"
+            element={
+              <ProtectedRoute session={session}>
+                <WriteBlog session={session} mode="edit" />
+              </ProtectedRoute>
+            }
+          />
+          {['/admin', '/users'].map((path) => (
             <Route
               key={path}
               path={path}
