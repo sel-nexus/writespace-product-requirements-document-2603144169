@@ -159,6 +159,9 @@ export default function RegisterPage({ onSession }) {
           <button type="submit" disabled={blocked} className={`${buttons.primary} w-full`}>
             Create account
           </button>
+          <Link to="/login" className={`block text-sm ${link}`}>
+            Already have an account? Login
+          </Link>
           <Link to="/" className={`inline-block text-sm ${link}`}>
             Back to WriteSpace
           </Link>
