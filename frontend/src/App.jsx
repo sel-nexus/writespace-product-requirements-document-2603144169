@@ -5,6 +5,8 @@ import LandingPage from './pages/LandingPage.jsx';
 import { PublicNavbar } from './components/PublicNavbar.jsx';
 import RegisterPage from './pages/RegisterPage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
+import Home from './pages/Home.jsx';
+import ReadBlog from './pages/ReadBlog.jsx';
 import { ProtectedRoute } from './components/ProtectedRoute.jsx';
 import { Navbar } from './components/Navbar.jsx';
 import { homeFor } from './utils/auth.js';
@@ -12,7 +14,7 @@ import { StorageWarning } from './components/StorageWarning.jsx';
 import { getSession } from './utils/storage.js';
 import { buttons } from './utils/ui.js';
 
-/** Wire identity and discovery pages; retain protected entry content for future slices. */
+/** Wire identity, discovery and reading pages; retain protected entry content for future slices. */
 export default function App() {
   const { pathname } = useLocation();
   const [sessionRead, setSessionRead] = useState(null);
@@ -86,7 +88,23 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-          {['/blogs', '/blog/:id', '/write', '/edit/:id', '/admin', '/users'].map((path) => (
+          <Route
+            path="/blogs"
+            element={
+              <ProtectedRoute session={session}>
+                <Home session={session} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/blog/:id"
+            element={
+              <ProtectedRoute session={session}>
+                <ReadBlog session={session} />
+              </ProtectedRoute>
+            }
+          />
+          {['/write', '/edit/:id', '/admin', '/users'].map((path) => (
             <Route
               key={path}
               path={path}
